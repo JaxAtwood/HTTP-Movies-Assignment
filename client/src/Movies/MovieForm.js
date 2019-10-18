@@ -1,58 +1,75 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+const MovieForm = props => {
+	console.log("UpdateForm Props", props)
 
-export default function MovieForm(props) {
+const initialMovie = {
+	id: "",
+	title: "",
+	director: "",
+	metascore: "",
+	stars: []
+}
 
-    const [form, setForm] = React.useState({ title: "", director: "", metascore: "" });
+const [movie, setMovie] = useState(initialMovie)
+	console.log(movie);
 
-    const handleChanges = event => {
-        setForm({...form, [event.target.title]: event.target.value});
-    };
+useEffect(() => {
 
-    React.useEffect(() => {
-        if (props.editingMovie) {
-            setForm( {
-                title: props.editingMovie.title,
-                director: props.editingMovie.director,
-                metascore: props.editingMovie.metascore,
-            });
-        } else {
-            setForm({ title: "", director: "", metascore: "" });
-        }
-    }, [props.editingMovie])
+const id = props.match.params.id;
+const movieToEdit = props.movies.find(movie => `${movie.id}` === id)
+if(movieToEdit) {
+	setMovie(movieToEdit)
+};
+}, [props.movies, props.match.params])
 
-    const submitHandler = event => {
-        event.preventDefault();
+const handleChanges = e => {
+	e.persist();
+	let value = e.target.value;
+	setMovie({
+		...movie,
+		[e.target.name]: value
+	})
+}
 
-        if(props.editingMovie) {
-            axios
-                .put(`http://localhost:5000/api/update-movie/${props.editingMovie.id}`, form)
-                .then(res => {
-                    console.log("PUT", res)
-                    props.setMovie(res.data);
-                    setForm({ title: "", director: "", metascore: "" });
-                })
-                .catch(error => console.log(error.response));
-        }
-    };
+const deleteMovie = e => {
+	e.preventDefault();
+	axios
+		.delete(`http://localhost:5000/api/movies/${movie.id}`)
+		.then(res => {
+			console.log("DELETE", res)
+			props.history.push('/')
+		})
+		.catch(err => console.log(err))
+}
 
-    const closeEdit = event => {
-        event.preventDefault();
-        props.setEditingMovie(null)
-    }
+const handleSubmit = e => {
+	e.preventDefault();
+	axios
+		.put(`http://localhost:5000/api/movies/${movie.id}`,  movie)
+		.then(res => {
+			console.log("PUT", res)
+			props.setMovies([...props.movies, res.data])
+			props.history.push("/")
+		})
+		.catch(err => {
+			console.log("NO", err)
+		})
+	}
+
 
     return (
         <div>
             <p>Edit Movie</p>
-            <form onSubmit={submitHandler}>
+            <form onSubmit={handleSubmit}>
                 <input
                     required
                     type="text"
                     name="title"
                     placeholder="title"
                     onChange={handleChanges}
-                    value={form.title}
+                    value={movie.title}
                 />
                  <input
                     required
@@ -60,7 +77,7 @@ export default function MovieForm(props) {
                     name="director"
                     placeholder="director"
                     onChange={handleChanges}
-                    value={form.director}
+                    value={movie.director}
                 />
                  <input
                     required
@@ -68,15 +85,15 @@ export default function MovieForm(props) {
                     name="metascore"
                     placeholder="metascore"
                     onChange={handleChanges}
-                    value={form.metascore}
+                    value={movie.metascore}
                 />
-                <button type="submit">{props.editingMovie ? "SUBMIT EDIT" : "ADD MOVIE"}</button>
-                <button onClick={closeEdit} >CANCEL</button>
+                <button type="submit" onClick={deleteMovie}>delete</button>
             </form>
         </div>
     )
 }
 
+export default MovieForm;
 // id: 5,
 // title: 'Tombstone',
 // director: 'George P. Cosmatos',
